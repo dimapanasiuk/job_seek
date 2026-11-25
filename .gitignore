@@ -12,6 +12,9 @@ wheels/
 # Environment
 .env
 
+# Local job data store
+data/
+
 # Tooling caches
 .ruff_cache/
 .mypy_cache/

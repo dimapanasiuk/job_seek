@@ -7,9 +7,10 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from jobseek.api.router import api_router
-from jobseek.config import get_settings
-from jobseek.logging import configure_logging
+from app.config import get_settings
+from app.exception_handlers import register_exception_handlers
+from app.logging_config import configure_logging
+from app.router import api_router
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +40,7 @@ def create_app() -> FastAPI:
         debug=settings.debug,
         lifespan=lifespan,
     )
+    register_exception_handlers(app)
 
     if settings.cors_origins:
         app.add_middleware(

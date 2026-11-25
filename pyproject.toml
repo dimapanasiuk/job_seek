@@ -13,6 +13,10 @@ dependencies = [
 requires = ["uv_build>=0.13.10,<0.14.0"]
 build-backend = "uv_build"
 
+[tool.uv.build-backend]
+module-name = "app"
+module-root = ""
+
 [dependency-groups]
 dev = [
     "pre-commit>=4.7.0",
@@ -23,16 +27,66 @@ dev = [
 [tool.ruff]
 target-version = "py313"
 line-length = 88
-src = ["src"]
+src = ["app"]
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
+select = [
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # pyflakes
+    "I",      # isort (imports)
+    "N",      # pep8-naming
+    "UP",     # pyupgrade
+    "B",      # flake8-bugbear
+    "A",      # flake8-builtins
+    "C4",     # flake8-comprehensions
+    "DTZ",    # flake8-datetimez
+    "FA",     # flake8-future-annotations
+    "ISC",    # flake8-implicit-str-concat
+    "ICN",    # flake8-import-conventions
+    "G",      # flake8-logging-format
+    "INP",    # flake8-no-pep420
+    "PIE",    # flake8-pie
+    "PYI",    # flake8-pyi
+    "PT",     # flake8-pytest-style
+    "Q",      # flake8-quotes
+    "RSE",    # flake8-raise
+    "RET",    # flake8-return
+    "SLF",    # flake8-self
+    "SIM",    # flake8-simplify
+    "SLOT",   # flake8-slots
+    "TID",    # flake8-tidy-imports
+    "TC",     # flake8-type-checking
+    "ARG",    # flake8-unused-arguments
+    "PTH",    # flake8-use-pathlib
+    "ERA",    # eradicate (commented-out code)
+    "PGH",    # pygrep-hooks
+    "PL",     # pylint
+    "TRY",    # tryceratops
+    "FLY",    # flynt
+    "PERF",   # perflint
+    "FURB",   # refurb
+    "LOG",    # logging
+    "RUF",    # ruff-specific
+]
+ignore = [
+    "E501",    # line length — handled by formatter
+    "PLR0913", # too many arguments — ok for FastAPI endpoints
+    "TRY003",  # long exception messages — noisy
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
 
 [tool.ruff.format]
 quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+docstring-code-format = true
 
 [tool.pyright]
-include = ["src"]
+include = ["app"]
 pythonVersion = "3.13"
 typeCheckingMode = "strict"
 venvPath = "."

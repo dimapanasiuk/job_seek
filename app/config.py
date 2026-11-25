@@ -6,7 +6,7 @@ from typing import Literal
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from jobseek import __version__
+from app import __version__
 
 
 class Settings(BaseSettings):
@@ -25,6 +25,9 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     api_v1_prefix: str = "/api/v1"
     cors_origins: list[str] = Field(default_factory=list)
+    arbeitnow_base_url: str = "https://www.arbeitnow.com/api/job-board-api"
+    arbeitnow_max_pages: int = 5
+    jobs_data_path: str = "data/jobs.json"
 
 
 @lru_cache

@@ -1,20 +1,11 @@
 """Health check endpoint."""
 
-from typing import Literal
-
 from fastapi import APIRouter
-from pydantic import BaseModel
 
-from jobseek import __version__
+from app import __version__
+from app.schemas.health import HealthResponse
 
 router = APIRouter(tags=["health"])
-
-
-class HealthResponse(BaseModel):
-    """Health check payload."""
-
-    status: Literal["ok"]
-    version: str
 
 
 @router.get("/health", response_model=HealthResponse)
