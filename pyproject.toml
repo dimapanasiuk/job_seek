@@ -5,8 +5,11 @@ description = "Job vacancy aggregator API"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "alembic>=1.20.1",
     "fastapi[standard]>=0.165.0",
+    "psycopg[binary]>=3",
     "pydantic-settings>=2.16.3",
+    "sqlalchemy>=2",
 ]
 
 [build-system]
@@ -74,6 +77,10 @@ ignore = [
     "PLR0913", # too many arguments — ok for FastAPI endpoints
     "TRY003",  # long exception messages — noisy
 ]
+
+[tool.ruff.lint.per-file-ignores]
+"alembic/**" = ["INP001"]
+"scripts/**" = ["INP001"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["app"]

@@ -1,83 +1,102 @@
 """Jobs business logic."""
 
 import logging
-from typing import Any, cast
+from typing import Any
 
 import httpx
+from sqlalchemy.orm import Session
 
-from app.config import get_settings
-from app.exceptions import UpstreamUnavailableError
-from app.providers.arbeitnow import fetch_jobs
-from app.schemas.jobs import JobsListParams, JobsListResponse, SyncResponse
-from app.store.jobs import load_jobs, upsert_jobs
+from app.config import Settings, get_settings
+from app.exceptions import NotFoundError, UpstreamUnavailableError
+from app.providers import arbeitnow, jobicy
+from app.repositories import jobs as jobs_repo
+from app.schemas.jobs import JobResponse, JobsListParams, JobsListResponse, SyncResponse
 
 logger = logging.getLogger(__name__)
 
 
-def sync_jobs() -> SyncResponse:
-    """Fetch jobs from Arbeitnow and upsert them into the local JSON store."""
-    settings = get_settings()
+def _collect_from_providers(
+    settings: Settings,
+) -> tuple[list[dict[str, Any]], dict[str, int]]:
+    fetched: list[dict[str, Any]] = []
+    by_source: dict[str, int] = {}
+    errors: list[str] = []
+
     try:
-        fetched = fetch_jobs(
+        arbeitnow_jobs = arbeitnow.fetch_jobs(
             base_url=settings.arbeitnow_base_url,
             max_pages=settings.arbeitnow_max_pages,
         )
-    except httpx.HTTPError as exc:
-        logger.exception("Arbeitnow sync failed")
-        raise UpstreamUnavailableError(
-            "Failed to fetch jobs from Arbeitnow",
-        ) from exc
+    except httpx.HTTPError:
+        logger.exception("arbeitnow sync failed")
+        errors.append("arbeitnow")
+        by_source["arbeitnow"] = 0
+    else:
+        by_source["arbeitnow"] = len(arbeitnow_jobs)
+        fetched.extend(arbeitnow_jobs)
 
-    store = upsert_jobs(settings.jobs_data_path, fetched)
+    try:
+        jobicy_jobs = jobicy.fetch_jobs(
+            base_url=settings.jobicy_base_url,
+            max_pages=settings.jobicy_max_pages,
+            count=settings.jobicy_count,
+        )
+    except httpx.HTTPError:
+        logger.exception("jobicy sync failed")
+        errors.append("jobicy")
+        by_source["jobicy"] = 0
+    else:
+        by_source["jobicy"] = len(jobicy_jobs)
+        fetched.extend(jobicy_jobs)
+
+    if errors and not fetched:
+        raise UpstreamUnavailableError(
+            "Failed to fetch jobs from all providers",
+            details={"failed": errors},
+        )
+
+    if errors:
+        logger.warning("Partial sync; failed providers: %s", ", ".join(errors))
+
+    return fetched, by_source
+
+
+def sync_jobs(session: Session) -> SyncResponse:
+    """Fetch jobs from all providers and upsert them into PostgreSQL."""
+    settings = get_settings()
+    fetched, by_source = _collect_from_providers(settings)
+    result = jobs_repo.upsert_jobs(session, fetched)
     return SyncResponse(
         fetched=len(fetched),
-        stored=len(store["jobs"]),
-        updated_at=store.get("updated_at"),
+        stored=int(result["stored"]),
+        updated_at=result.get("updated_at"),
+        by_source=by_source,
     )
 
 
-def _matches(job: dict[str, Any], params: JobsListParams) -> bool:
-    if params.q is not None:
-        needle = params.q.casefold()
-        title = str(job.get("title") or "").casefold()
-        company = str(job.get("company_name") or "").casefold()
-        if needle not in title and needle not in company:
-            return False
-
-    if params.location is not None:
-        job_location = str(job.get("location") or "").casefold()
-        if params.location.casefold() not in job_location:
-            return False
-
-    if params.remote is not None and bool(job.get("remote")) is not params.remote:
-        return False
-
-    if params.tag is not None:
-        needle = params.tag.casefold()
-        tags = job.get("tags")
-        if not isinstance(tags, list):
-            return False
-        if not any(
-            needle in str(item).casefold() for item in cast("list[object]", tags)
-        ):
-            return False
-
-    return True
-
-
-def list_jobs(params: JobsListParams) -> JobsListResponse:
-    """Return jobs from the local JSON store (no live upstream call)."""
-    settings = get_settings()
-    store = load_jobs(settings.jobs_data_path)
-    stored_jobs = cast("dict[str, dict[str, Any]]", store["jobs"])
-
-    jobs = [job for job in stored_jobs.values() if _matches(job, params)][
-        : params.limit
-    ]
-
-    updated_at = store.get("updated_at")
+def list_jobs(session: Session, params: JobsListParams) -> JobsListResponse:
+    """Return a page of jobs from PostgreSQL."""
+    result = jobs_repo.list_jobs(session, params)
+    jobs = result["jobs"]
+    total = int(result["total"])
+    offset = (params.page - 1) * params.limit
     return JobsListResponse(
-        updated_at=str(updated_at) if updated_at is not None else None,
+        updated_at=result.get("updated_at"),
+        page=params.page,
+        limit=params.limit,
+        total=total,
+        has_more=offset + len(jobs) < total,
         count=len(jobs),
         jobs=jobs,
     )
+
+
+def get_job(session: Session, job_id: str) -> JobResponse:
+    """Return one job by id from PostgreSQL."""
+    job = jobs_repo.get_job(session, job_id)
+    if job is None:
+        raise NotFoundError(
+            f"Job not found: {job_id}",
+            details={"job_id": job_id},
+        )
+    return JobResponse(job=job)

@@ -1,26 +1,43 @@
 """Pydantic schemas for the jobs API."""
 
-from typing import Any
-
 from pydantic import BaseModel, Field
 
 
+class JobOut(BaseModel):
+    """Canonical job shape shared by API, providers, and persistence."""
+
+    id: str
+    source: str
+    title: str
+    company_name: str
+    location: str
+    remote: bool
+    url: str
+    description: str
+    tags: list[str]
+    job_types: list[str]
+    created_at: str | None
+    fetched_at: str | None
+
+
 class SyncResponse(BaseModel):
-    """Result of syncing jobs from Arbeitnow."""
+    """Result of syncing jobs from configured providers."""
 
     fetched: int
     stored: int
     updated_at: str | None
+    by_source: dict[str, int] = Field(default_factory=dict)
 
 
 class JobsListParams(BaseModel):
     """Query filters for listing jobs."""
 
+    page: int = Field(default=1, ge=1, description="Page number (1-based).")
     limit: int = Field(
-        default=100,
+        default=20,
         ge=1,
-        le=1000,
-        description="Max jobs to return (default 100).",
+        le=100,
+        description="Page size (default 20, max 100).",
     )
     q: str | None = Field(
         default=None,
@@ -44,8 +61,18 @@ class JobsListParams(BaseModel):
 
 
 class JobsListResponse(BaseModel):
-    """Locally stored jobs."""
+    """Paginated locally stored jobs."""
 
     updated_at: str | None
+    page: int
+    limit: int
+    total: int
+    has_more: bool
     count: int
-    jobs: list[dict[str, Any]]
+    jobs: list[JobOut]
+
+
+class JobResponse(BaseModel):
+    """Single job payload."""
+
+    job: JobOut

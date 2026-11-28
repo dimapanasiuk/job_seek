@@ -8,16 +8,17 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
+from app.controllers import api_router
+from app.db.session import engine
 from app.exception_handlers import register_exception_handlers
 from app.logging_config import configure_logging
-from app.router import api_router
 
 logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
-    """Log application start and stop."""
+    """Log application start and stop; dispose the DB engine on shutdown."""
     settings = get_settings()
     logger.info(
         "Starting %s v%s (%s)",
@@ -26,6 +27,7 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
         settings.environment,
     )
     yield
+    engine.dispose()
     logger.info("Shutting down %s", settings.app_name)
 
 

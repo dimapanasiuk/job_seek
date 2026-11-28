@@ -1,52 +1,70 @@
 # Jobseek
 
-Job vacancy aggregator API built with FastAPI.
+Job vacancy aggregator API built with FastAPI and PostgreSQL.
 
 ## Requirements
 
 - [uv](https://docs.astral.sh/uv/)
 - Python 3.13 (managed by uv via `.python-version`)
+- [Docker](https://docs.docker.com/get-docker/) (for local PostgreSQL)
 
 ## Setup
 
 ```bash
-uv sync --all-groups
-uv run pre-commit install
-cp .env.example .env
+make setup
 ```
+
+Or step by step: `make sync`, copy `.env.example` → `.env`, then `make up`, `make migrate`.
 
 ## Run
 
 ```bash
-uv run fastapi dev app/main.py
+make up      # PostgreSQL (once)
+make migrate # after schema changes
+make dev     # API with hot reload
 ```
 
 Health check: [http://127.0.0.1:8000/api/v1/health](http://127.0.0.1:8000/api/v1/health)
 
+Useful targets: `make help`, `make down`, `make check`, `make revision msg="…"`, `make import-json`.
+
 ## Jobs
 
-Sync from Arbeitnow into local `data/jobs.json`:
+Providers (no API keys): **Arbeitnow** (EU/ATS) and **Jobicy** (remote worldwide).
+
+One-time import from the legacy JSON dump (optional):
+
+```bash
+make import-json
+```
+
+Sync into PostgreSQL:
 
 ```bash
 curl -X POST http://127.0.0.1:8000/api/v1/jobs/sync
 ```
 
-List stored jobs (default `limit=100`):
+List stored jobs (paginated, default `page=1&limit=20`):
 
 ```bash
-curl 'http://127.0.0.1:8000/api/v1/jobs?limit=20'
+curl 'http://127.0.0.1:8000/api/v1/jobs?page=1&limit=20'
 ```
 
 Filter (any combo of `q`, `location`, `remote`, `tag`):
 
 ```bash
-curl 'http://127.0.0.1:8000/api/v1/jobs?q=python&location=berlin&remote=true&tag=devops&limit=20'
+curl 'http://127.0.0.1:8000/api/v1/jobs?q=python&location=berlin&remote=true&tag=devops&page=1&limit=20'
+```
+
+Get one job by id (URL-encode the id if it contains `:`):
+
+```bash
+curl 'http://127.0.0.1:8000/api/v1/jobs/jobicy%3A164483'
 ```
 
 ## Lint & types
 
 ```bash
-uv run ruff check .
-uv run ruff format .
-uv run pyright
+make check
+make format
 ```

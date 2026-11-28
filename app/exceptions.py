@@ -36,3 +36,20 @@ class UpstreamUnavailableError(AppError):
             status_code=502,
             details=details,
         )
+
+
+class NotFoundError(AppError):
+    """Requested resource does not exist."""
+
+    def __init__(
+        self,
+        message: str = "Resource not found",
+        *,
+        details: Any | None = None,
+    ) -> None:
+        super().__init__(
+            message,
+            code="not_found",
+            status_code=404,
+            details=details,
+        )

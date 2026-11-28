@@ -27,7 +27,10 @@ class Settings(BaseSettings):
     cors_origins: list[str] = Field(default_factory=list)
     arbeitnow_base_url: str = "https://www.arbeitnow.com/api/job-board-api"
     arbeitnow_max_pages: int = 5
-    jobs_data_path: str = "data/jobs.json"
+    jobicy_base_url: str = "https://jobicy.com/api/jobs"
+    jobicy_max_pages: int = 5
+    jobicy_count: int = 200
+    database_url: str = "postgresql+psycopg://jobseek:jobseek@localhost:5432/jobseek"
 
 
 @lru_cache
