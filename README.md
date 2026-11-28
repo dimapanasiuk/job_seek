@@ -26,17 +26,11 @@ make dev     # API with hot reload
 
 Health check: [http://127.0.0.1:8000/api/v1/health](http://127.0.0.1:8000/api/v1/health)
 
-Useful targets: `make help`, `make down`, `make check`, `make revision msg="…"`, `make import-json`.
+Useful targets: `make help`, `make down`, `make check`, `make revision msg="…"`.
 
 ## Jobs
 
 Providers (no API keys): **Arbeitnow** (EU/ATS) and **Jobicy** (remote worldwide).
-
-One-time import from the legacy JSON dump (optional):
-
-```bash
-make import-json
-```
 
 Sync into PostgreSQL:
 

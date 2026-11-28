@@ -1,4 +1,4 @@
-.PHONY: help sync setup up down wait-db migrate revision import-json dev lint format typecheck check
+.PHONY: help sync setup up down wait-db migrate revision dev lint format typecheck check
 
 COMPOSE ?= docker compose
 UV ?= uv run
@@ -36,9 +36,6 @@ migrate: ## Apply database migrations
 revision: ## Create a new Alembic revision (msg="description")
 	@test -n "$(msg)" || (echo 'Usage: make revision msg="description"' && exit 1)
 	$(UV) alembic revision --autogenerate -m "$(msg)"
-
-import-json: ## Import data/jobs.json into PostgreSQL
-	$(UV) python scripts/import_jobs_json.py
 
 dev: ## Run API with hot reload
 	$(UV) fastapi dev app/main.py

@@ -12,9 +12,6 @@ wheels/
 # Environment
 .env
 
-# Local embedded Postgres (fallback when Docker is unavailable)
-.pg/
-
 # Tooling caches
 .ruff_cache/
 .mypy_cache/
